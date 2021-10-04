@@ -1,6 +1,6 @@
 use cosmwasm_std::{Addr, QuerierWrapper, StdResult, Storage, Uint128};
 use cw20::{BalanceResponse, Cw20QueryMsg, Denom};
-use cw_storage_plus::Item;
+use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +34,9 @@ pub fn is_admin(storage: &dyn Storage, address: &Addr) -> StdResult<bool> {
 }
 
 
+pub const EXECUTIONS: Map<&Addr, u64> = Map::new("execution");
+
+
 const REQUIREMENT: Item<Requirement> = Item::new("requirement");
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -41,6 +44,7 @@ pub struct Requirement {
     pub min_token_balances: Vec<(Denom, Uint128)>,
     pub min_luna_staking: Uint128,
     pub participation_limit: u64,
+    pub min_burn_amount: Uint128,
 }
 
 impl Requirement {
@@ -64,6 +68,11 @@ impl Requirement {
         }
 
         let result = self.is_satisfy_participation_count(&querier, campaign, actor)?;
+        if !result.0 {
+            return Ok(result);
+        }
+
+        let result = self.is_satisfy_execution(&querier, actor)?;
         if !result.0 {
             return Ok(result);
         }
@@ -123,6 +132,20 @@ impl Requirement {
                 self.participation_limit.to_string(),
                 participation_count.to_string(),
             )));
+        }
+
+        Ok((true, String::default()))
+    }
+
+    fn is_satisfy_execution(&self, querier: &Querier, actor: &Addr) -> StdResult<(bool, String)> {
+        if self.min_burn_amount.is_zero() {
+            return Ok((true, String::default()));
+        }
+
+        let is_executed = querier.is_executed(actor)?;
+
+        if !is_executed {
+            return Ok((false, "Did not executed before qualify or dissatisfied execution".to_string()));
         }
 
         Ok((true, String::default()))
@@ -188,6 +211,11 @@ impl Querier<'_> {
         )?;
 
         Ok(actor.participation_count)
+    }
+
+    fn is_executed(&self, address: &Addr) -> StdResult<bool> {
+        EXECUTIONS.may_load(self.storage, address)
+            .map(|n| n.map_or(false, |b| b > 0))
     }
 }
 

@@ -33,6 +33,7 @@ pub fn execute(
             min_token_balances,
             min_luna_staking,
             participation_limit,
+            min_send_amount,
         } => executions::update_requirement(
             deps,
             env,
@@ -40,7 +41,9 @@ pub fn execute(
             min_token_balances,
             min_luna_staking,
             participation_limit,
+            min_send_amount,
         ),
+        ExecuteMsg::Execute { amount} => executions::execute(deps, env, info, amount),
         ExecuteMsg::Qualify(msg) => executions::qualify(deps, env, info, msg),
     }
 }

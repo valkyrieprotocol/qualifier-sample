@@ -612,9 +612,9 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "valkyrie"
-version = "0.1.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50c72e58c6d15e468bf6054a9afe36e80d2cfe7d5b40e411af3203ecb073a597"
+checksum = "8ea4a608c181b437ab59daad1253fe80076b61fd02ced64b14f9b79e4702c987"
 dependencies = [
  "bigint",
  "cosmwasm-std",
@@ -630,9 +630,9 @@ dependencies = [
 
 [[package]]
 name = "valkyrie-qualifier"
-version = "0.1.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f5d90c35d02a248f59cbd5a2ebb9e8fb6f364f34a4fdcb83ece7a241504ebf2"
+checksum = "00bf9d1711dd5f0f30244b79bc68dc0bfbef2face7911afb2c1b76a04371d254"
 dependencies = [
  "cosmwasm-std",
  "schemars",
@@ -641,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "valkyrie-qualifier-sample"
-version = "0.1.0"
+version = "1.0.2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",

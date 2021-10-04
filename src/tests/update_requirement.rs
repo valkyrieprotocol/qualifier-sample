@@ -14,6 +14,7 @@ pub fn exec(
     min_token_balances: Option<Vec<(Denom, Uint128)>>,
     min_luna_staking: Option<Uint128>,
     participation_limit: Option<u64>,
+    min_send_amount: Option<Uint128>,
 ) -> ExecuteResult {
     update_requirement(
         deps.as_mut(),
@@ -22,6 +23,7 @@ pub fn exec(
         min_token_balances,
         min_luna_staking,
         participation_limit,
+        min_send_amount,
     )
 }
 
@@ -30,6 +32,7 @@ pub fn will_success(
     min_token_balances: Option<Vec<(Denom, Uint128)>>,
     min_luna_staking: Option<Uint128>,
     participation_limit: Option<u64>,
+    min_send_amount: Option<Uint128>,
 ) -> (Env, MessageInfo, Response) {
     let env = mock_env();
     let info = admin_sender();
@@ -41,6 +44,7 @@ pub fn will_success(
         min_token_balances,
         min_luna_staking,
         participation_limit,
+        min_send_amount,
     ).unwrap();
 
     (env, info, response)
@@ -55,18 +59,21 @@ fn succeed() {
     let min_token_balances = vec![(Denom::Native("ukrw".to_string()), Uint128::new(500))];
     let min_luna_staking = Uint128::new(300);
     let participation_limit = 99u64;
+    let min_send_amount = Uint128::new(300);
 
     will_success(
         &mut deps,
         Some(min_token_balances.clone()),
         Some(min_luna_staking.clone()),
         Some(participation_limit.clone()),
+        Some(min_send_amount.clone()),
     );
 
     let requirement = Requirement::load(&deps.storage).unwrap();
     assert_eq!(requirement.min_token_balances, min_token_balances);
     assert_eq!(requirement.min_luna_staking, min_luna_staking);
     assert_eq!(requirement.participation_limit, participation_limit);
+    assert_eq!(requirement.min_burn_amount, min_send_amount);
 }
 
 #[test]
@@ -79,6 +86,7 @@ fn failed_invalid_permission() {
         &mut deps,
         mock_env(),
         mock_info("AnySender", &[]),
+        None,
         None,
         None,
         None,

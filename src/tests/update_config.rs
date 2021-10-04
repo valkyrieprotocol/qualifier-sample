@@ -48,7 +48,7 @@ fn succeed() {
 
     super::instantiate::default(&mut deps);
 
-    let continue_option_on_fail = QualifiedContinueOption::ExecuteOnly;
+    let continue_option_on_fail = QualifiedContinueOption::Eligible;
 
     will_success(
         &mut deps,

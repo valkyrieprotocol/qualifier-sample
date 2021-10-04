@@ -14,16 +14,16 @@ pub fn exec(
     deps: &mut CustomDeps,
     env: Env,
     info: MessageInfo,
-    continue_option_on_fail: QualifiedContinueOption,
     min_token_balances: Vec<(Denom, Uint128)>,
     min_luna_staking: Uint128,
     participation_limit: u64,
+    min_send_amount: Uint128,
 ) -> ExecuteResult {
     let msg = InstantiateMsg {
-        continue_option_on_fail,
         min_token_balances,
         min_luna_staking,
         participation_limit,
+        min_burn_amount: min_send_amount,
     };
 
     instantiate(deps.as_mut(), env, info, msg)
@@ -31,10 +31,10 @@ pub fn exec(
 
 pub fn will_success(
     deps: &mut CustomDeps,
-    continue_option_on_fail: QualifiedContinueOption,
     min_token_balances: Vec<(Denom, Uint128)>,
     min_luna_staking: Uint128,
     participation_limit: u64,
+    min_send_amount: Uint128,
 ) -> (Env, MessageInfo, Response) {
     let env = mock_env();
     let info = mock_info(ADMIN, &[]);
@@ -43,10 +43,10 @@ pub fn will_success(
         deps,
         env.clone(),
         info.clone(),
-        continue_option_on_fail,
         min_token_balances,
         min_luna_staking,
         participation_limit,
+        min_send_amount,
     ).unwrap();
 
     (env, info, response)
@@ -55,10 +55,10 @@ pub fn will_success(
 pub fn default(deps: &mut CustomDeps) -> (Env, MessageInfo, Response) {
     will_success(
         deps,
-        CONTINUE_OPTION_ON_FAIL,
         vec![(Denom::Native(MIN_TOKEN_BALANCE_DENOM_NATIVE.to_string()), MIN_TOKEN_BALANCE_AMOUNT)],
         MIN_LUNA_STAKING,
         PARTICIPATION_LIMIT,
+        MIN_BURN_AMOUNT,
     )
 }
 
@@ -71,7 +71,7 @@ fn succeed() {
     let config = QualifierConfig::load(&deps.storage).unwrap();
     assert_eq!(config, QualifierConfig {
         admin: info.sender,
-        continue_option_on_fail: CONTINUE_OPTION_ON_FAIL,
+        continue_option_on_fail: QualifiedContinueOption::Ineligible,
     });
 
     let requirement = Requirement::load(&deps.storage).unwrap();
@@ -79,5 +79,6 @@ fn succeed() {
         min_token_balances: vec![(Denom::Native(MIN_TOKEN_BALANCE_DENOM_NATIVE.to_string()), MIN_TOKEN_BALANCE_AMOUNT)],
         min_luna_staking: MIN_LUNA_STAKING,
         participation_limit: PARTICIPATION_LIMIT,
+        min_burn_amount: MIN_BURN_AMOUNT,
     });
 }

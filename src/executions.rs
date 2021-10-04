@@ -1,8 +1,8 @@
-use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128, StdError, to_binary};
+use cosmwasm_std::{DepsMut, Env, MessageInfo, Response, Uint128, StdError, to_binary, SubMsg, CosmosMsg, BankMsg, coin};
 use valkyrie_qualifier::{QualificationMsg, QualifiedContinueOption, QualificationResult};
 use cw20::Denom;
 use crate::msgs::InstantiateMsg;
-use crate::states::{Requirement, QualifierConfig, is_admin, Querier};
+use crate::states::{Requirement, QualifierConfig, is_admin, Querier, EXECUTIONS};
 use crate::errors::ContractError;
 
 
@@ -19,13 +19,14 @@ pub fn instantiate(
 
     QualifierConfig {
         admin: info.sender,
-        continue_option_on_fail: msg.continue_option_on_fail,
+        continue_option_on_fail: QualifiedContinueOption::Ineligible,
     }.save(deps.storage)?;
 
     Requirement {
         min_token_balances: msg.min_token_balances,
         min_luna_staking: msg.min_luna_staking,
         participation_limit: msg.participation_limit,
+        min_burn_amount: msg.min_burn_amount,
     }.save(deps.storage)?;
 
     Ok(response)
@@ -69,6 +70,7 @@ pub fn update_requirement(
     min_token_balances: Option<Vec<(Denom, Uint128)>>,
     min_luna_staking: Option<Uint128>,
     participation_limit: Option<u64>,
+    min_burn_amount: Option<Uint128>,
 ) -> ExecuteResult {
     if !is_admin(deps.storage, &info.sender)? {
         return Err(ContractError::Unauthorized {});
@@ -111,7 +113,37 @@ pub fn update_requirement(
         response = response.add_attribute("is_updated_participation_limit", "true");
     }
 
+    if let Some(min_send_amount) = min_burn_amount {
+        requirement.min_burn_amount = min_send_amount;
+        response = response.add_attribute("is_updated_min_send_amount", "true");
+    }
+
     requirement.save(deps.storage)?;
+
+    Ok(response)
+}
+
+pub fn execute(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    amount: Uint128,
+) -> ExecuteResult {
+    let mut response = Response::new()
+        .add_attribute("action", "execute");
+
+    let config = Requirement::load(deps.storage)?;
+    if config.min_burn_amount.is_zero() {
+        return Ok(response);
+    }
+
+    if amount >= config.min_burn_amount {
+        EXECUTIONS.save(deps.storage, &info.sender, &1)?;
+    }
+
+    response.messages.push(SubMsg::new(CosmosMsg::Bank(BankMsg::Burn {
+        amount: vec![coin(amount.u128(), "uluna")],
+    })));
 
     Ok(response)
 }
@@ -134,6 +166,10 @@ pub fn qualify(
 
     let (is_valid, error_msg) = requirement.is_satisfy_requirements(&querier, &campaign, &actor)?;
     let result = if is_valid {
+        if !requirement.min_burn_amount.is_zero() {
+            EXECUTIONS.remove(deps.storage, &actor);
+        }
+
         QualificationResult {
             continue_option: QualifiedContinueOption::Eligible,
             reason: None,

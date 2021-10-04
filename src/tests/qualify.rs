@@ -1,10 +1,10 @@
-use cosmwasm_std::{coin, Env, from_binary, MessageInfo, Response};
+use cosmwasm_std::{coin, Env, from_binary, MessageInfo, Response, Uint128};
 use cosmwasm_std::testing::{mock_env, mock_info};
 
 use valkyrie_qualifier::{QualificationMsg, QualificationResult, QualifiedContinueOption};
 
 use crate::executions::{ExecuteResult, qualify};
-use crate::tests::{CONTINUE_OPTION_ON_FAIL, MIN_LUNA_STAKING, MIN_TOKEN_BALANCE_AMOUNT};
+use crate::tests::{MIN_LUNA_STAKING, MIN_TOKEN_BALANCE_AMOUNT};
 use crate::tests::mock_querier::{custom_deps, CustomDeps};
 use valkyrie::campaign::query_msgs::ActorResponse;
 
@@ -44,6 +44,7 @@ fn satisfy() {
     ])]);
 
     deps.querier.plus_delegation("Actor", "Delegator", MIN_LUNA_STAKING);
+    super::execute::will_success(&mut deps, "Actor".to_string(), Uint128::new(1000));
 
 
     let (_, _, response) = will_success(&mut deps, "Actor".to_string());
@@ -55,6 +56,7 @@ fn satisfy() {
     ])]);
 
     deps.querier.plus_delegation("Actor2", "Delegator", MIN_LUNA_STAKING);
+    super::execute::will_success(&mut deps, "Actor2".to_string(), Uint128::new(1000));
 
     let mut actor = ActorResponse::new("Actor2".to_string(), None);
     actor.participation_count = 1;
@@ -76,7 +78,7 @@ fn dissatisfy_min_token_balances() {
 
     let (_, _, response) = will_success(&mut deps, "Actor".to_string());
     let result: QualificationResult = from_binary(&response.data.unwrap()).unwrap();
-    assert_eq!(result.continue_option, CONTINUE_OPTION_ON_FAIL);
+    assert_eq!(result.continue_option, QualifiedContinueOption::Ineligible);
 }
 
 #[test]
@@ -91,7 +93,7 @@ fn dissatisfy_min_luna_staking() {
 
     let (_, _, response) = will_success(&mut deps, "Actor".to_string());
     let result: QualificationResult = from_binary(&response.data.unwrap()).unwrap();
-    assert_eq!(result.continue_option, CONTINUE_OPTION_ON_FAIL);
+    assert_eq!(result.continue_option, QualifiedContinueOption::Ineligible);
 }
 
 #[test]
@@ -112,5 +114,16 @@ fn dissatisfy_participation_limit() {
 
     let (_, _, response) = will_success(&mut deps, "Actor".to_string());
     let result: QualificationResult = from_binary(&response.data.unwrap()).unwrap();
-    assert_eq!(result.continue_option, CONTINUE_OPTION_ON_FAIL);
+    assert_eq!(result.continue_option, QualifiedContinueOption::Ineligible);
+}
+
+#[test]
+fn dissatisfy_execution() {
+    let mut deps = custom_deps();
+
+    super::instantiate::default(&mut deps);
+
+    let (_, _, response) = will_success(&mut deps, "Actor".to_string());
+    let result: QualificationResult = from_binary(&response.data.unwrap()).unwrap();
+    assert_eq!(result.continue_option, QualifiedContinueOption::Ineligible);
 }
