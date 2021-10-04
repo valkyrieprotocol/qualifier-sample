@@ -132,12 +132,14 @@ impl Requirement {
 
 pub struct Querier<'a> {
     querier: &'a QuerierWrapper<'a>,
+    storage: &'a dyn Storage,
 }
 
 impl Querier<'_> {
-    pub fn new<'a>(querier: &'a QuerierWrapper<'a>) -> Querier<'a> {
+    pub fn new<'a>(querier: &'a QuerierWrapper<'a>, storage: &'a dyn Storage) -> Querier<'a> {
         Querier {
-            querier
+            querier,
+            storage,
         }
     }
 

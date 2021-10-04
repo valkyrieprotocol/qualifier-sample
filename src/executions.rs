@@ -130,7 +130,7 @@ pub fn qualify(
     let actor = deps.api.addr_validate(msg.actor.as_str())?;
 
     let requirement = Requirement::load(deps.storage)?;
-    let querier = Querier::new(&deps.querier);
+    let querier = Querier::new(&deps.querier, deps.storage);
 
     let (is_valid, error_msg) = requirement.is_satisfy_requirements(&querier, &campaign, &actor)?;
     let result = if is_valid {
